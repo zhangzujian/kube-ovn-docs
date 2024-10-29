@@ -1,6 +1,6 @@
 # OVN EIP FIP SNAT DNAT 支持
 
-``` mermaid
+```mermaid
 
 graph LR
 
@@ -12,7 +12,7 @@ lrp-.-peer-.-lsp
 Pod 基于 SNAT 出公网的大致流程，最后是经过网关节点的公网网卡。
 Pod 基于 Fip 使用集中式网关，路径也类似。
 
-``` mermaid
+```mermaid
 
 graph LR
 
@@ -47,9 +47,9 @@ Pod 基于分布式网关 FIP (dnat_and_snat) 出公网的大致流程，最后�
 # 1. kube-ovn-controller 启动参数需要配置：
           - --external-gateway-vlanid=204
           - --external-gateway-switch=external204
-          
+
 # 2. kube-ovn-cni 启动参数需要配置:
-          - --external-gateway-switch=external204 
+          - --external-gateway-switch=external204
 
 ### 以上配置都和下面的公网网络配置 vlan id 和资源名保持一致，目前仅支持指定一个 underlay 公网作为默认外部公网。
 ```
@@ -63,7 +63,7 @@ Pod 基于分布式网关 FIP (dnat_and_snat) 出公网的大致流程，最后�
 
 ### 1.1 准备 underlay 公网网络
 
-``` bash
+```yaml
 # 准备 provider-network， vlan， subnet
 # cat 01-provider-network.yaml
 
@@ -101,7 +101,7 @@ spec:
 
 ### 1.2 默认 vpc 启用 eip_snat
 
-``` bash
+```yaml
 # 启用默认 vpc 和上述 underlay 公网 provider subnet 互联
 # cat 00-centralized-external-gw-no-ip.yaml
 
@@ -113,7 +113,7 @@ metadata:
 data:
   enable-external-gw: "true"
   external-gw-nodes: "pc-node-1,pc-node-2,pc-node-3"
-  type: "centralized" 
+  type: "centralized"
   external-gw-nic: "vlan" # 用于接入 ovs 公网网桥的网卡
   external-gw-addr: "10.5.204.254/24" # underlay 物理网关的 ip
 ```
@@ -132,14 +132,14 @@ data:
 kubectl label nodes pc-node-1 pc-node-2 pc-node-3 ovn.kubernetes.io/external-gw=true
 ```
 
-``` bash
+```yaml
 # cat 00-ns.yml
 
 apiVersion: v1
 kind: Namespace
 metadata:
   name: vpc1
-  
+
 # cat 01-vpc-ecmp-enable-external-bfd.yml
 
 kind: Vpc
@@ -197,7 +197,7 @@ router 87ad06fd-71d5-4ff8-a1f0-54fa3bba1a7f (vpc1)
         type: "snat"
 ```
 
-``` bash
+```bash
 # kubectl ko nbctl lr-route-list vpc1
 
 IPv4 Routes
@@ -284,8 +284,7 @@ router 87ad06fd-71d5-4ff8-a1f0-54fa3bba1a7f (vpc1)
 - lrp: 软路由基于该端口和 underlay 公网互联，该 lrp 端口的 ip 可以被其他 dnat snat 复用
 - lsp: 用于 ovn 基于 bfd 的 ecmp 静态路由场景，在网关节点上提供一个 ovs internal port 作为 ecmp 路由的下一跳
 
-``` bash
----
+```yaml
 kind: OvnEip
 apiVersion: kubeovn.io/v1
 metadata:
@@ -293,7 +292,7 @@ metadata:
 spec:
   externalSubnet: external204
   type: nat
-  
+
 # 动态分配一个 eip 资源，该资源预留用于 fip 场景
 ```
 
@@ -303,7 +302,7 @@ externalSubnet 字段可不进行配置，若未配置则会使用默认公网�
 
 ### 2.1 ovn-fip 为 pod 绑定一个 fip
 
-``` bash
+```bash
 # kubectl get po -o wide -n vpc1 vpc-1-busybox01
 NAME              READY   STATUS    RESTARTS   AGE     IP            NODE
 vpc-1-busybox01   1/1     Running   0          3d15h   192.168.0.2   pc-node-2
@@ -311,9 +310,9 @@ vpc-1-busybox01   1/1     Running   0          3d15h   192.168.0.2   pc-node-2
 # kubectl get ip vpc-1-busybox01.vpc1
 NAME                   V4IP          V6IP   MAC                 NODE        SUBNET
 vpc-1-busybox01.vpc1   192.168.0.2          00:00:00:0A:DD:27   pc-node-2   vpc1-subnet1
+```
 
----
-
+```yaml
 kind: OvnEip
 apiVersion: kubeovn.io/v1
 metadata:
@@ -342,10 +341,9 @@ spec:
   ovnEip: eip-static
   vpc: vpc1
   v4Ip: 192.168.0.2
-
 ```
 
-``` bash
+```bash
 # kubectl get ofip
 NAME          VPC    V4EIP          V4IP          READY   IPTYPE   IPNAME
 eip-for-vip   vpc1   10.5.204.106   192.168.0.3   true    vip      test-fip-vip
@@ -368,7 +366,7 @@ rtt min/avg/max/mdev = 0.368/0.734/1.210/0.352 ms
 # 可以看到在 node ping 默认 vpc 下的 pod 的公网 ip 是能通的
 ```
 
-``` bash
+```bash
 # 该公网 ip 能通的关键资源主要包括以下部分
 # kubectl ko nbctl show vpc1
 router 87ad06fd-71d5-4ff8-a1f0-54fa3bba1a7f (vpc1)
@@ -391,7 +389,7 @@ router 87ad06fd-71d5-4ff8-a1f0-54fa3bba1a7f (vpc1)
 
 那么可以基于 fip 绑定 vpc 内部的 vip 的方式来提供 vip 的公网能力。
 
-``` bash
+```yaml
 # 先创建 vip，eip，再将 eip 绑定到 vip
 # cat vip.yaml
 
@@ -435,10 +433,9 @@ spec:
   ipType: vip         # 默认情况下 fip 是面向 pod ip 的，这里需要标注指定对接到 vip 资源
   vpc: vpc1
   v4Ip: 192.168.0.3
-
 ```
 
-``` bash
+```bash
 # kubectl get ofip
 NAME          VPC    V4EIP          V4IP          READY   IPTYPE   IPNAME
 eip-for-vip   vpc1   10.5.204.106   192.168.0.3   true    vip      test-fip-vip
@@ -489,7 +486,7 @@ tcpdump: listening on eth0, link-type EN10MB (Ethernet), capture size 262144 byt
 
 该功能和 iptables-snat 设计和使用方式基本一致
 
-```bash
+```yaml
 # cat 03-subnet-snat.yaml
 
 ---
@@ -521,7 +518,6 @@ spec:
   ovnEip: snat-for-subnet-in-vpc
   vpc: vpc1
   v4IpCidr: 192.168.0.0/24 # 该字段可以是 cidr 也可以是 ip
-
 ```
 
 若要使用额外公网网络，则需要通过 externalSubnet 显式指定需要扩展使用的公网网络，在上述配置中扩展公网网络为 extra。
@@ -530,7 +526,7 @@ spec:
 
 该功能和 iptables-snat 设计和使用方式基本一致
 
-```bash
+```yaml
 # cat 03-pod-snat.yaml
 
 ---
@@ -562,14 +558,13 @@ spec:
   ovnEip: snat-for-subnet-in-vpc
   vpc: vpc1
   v4IpCidr: 192.168.0.4
-
 ```
 
 若要使用额外公网网络，则需要通过 externalSubnet 显式指定需要扩展使用的公网网络，在上述配置中扩展公网网络为 extra。
 
 以上资源创建后，可以看到 snat 公网功能依赖的如下资源。
 
-``` bash
+```bash
 # kubectl ko nbctl show vpc1
 router 87ad06fd-71d5-4ff8-a1f0-54fa3bba1a7f (vpc1)
     port vpc1-vpc1-subnet1
@@ -589,7 +584,7 @@ router 87ad06fd-71d5-4ff8-a1f0-54fa3bba1a7f (vpc1)
         type: "snat"
 ```
 
-``` bash
+```bash
 [root@pc-node-1 03-cust-vpc]# kubectl get po -A -o wide  | grep busy
 vpc1            vpc-1-busybox01                                 1/1     Running   0                3d15h   192.168.0.2   pc-node-2   <none>           <none>
 vpc1            vpc-1-busybox02                                 1/1     Running   0                17h     192.168.0.4   pc-node-1   <none>           <none>
@@ -655,7 +650,6 @@ rtt min/avg/max/mdev = 22.126/22.518/22.741/0.278 ms
 ### 4.1 ovn-dnat 为 pod 绑定一个 dnat
 
 ```yaml
-
 kind: OvnEip
 apiVersion: kubeovn.io/v1
 metadata:
@@ -675,7 +669,6 @@ spec:
   internalPort: "22"
   externalPort: "22"
 
-
 ---
 # 或者通过传统指定 vpc 以及 内网 ip 的方式
 
@@ -690,7 +683,6 @@ spec:
   externalPort: "22"
   vpc: vpc1
   v4Ip: 192.168.0.3
-
 ```
 
 若要使用额外公网网络，则需要通过 externalSubnet 显式指定需要扩展使用的公网网络，在上述配置中扩展公网网络为 extra。
@@ -711,7 +703,6 @@ eip-dnat               eip-dnat               tcp        10.5.49.4    192.168.0.
 ### 4.2 ovn-dnat 为 vip 绑定一个 dnat
 
 ```yaml
-
 kind: OvnDnatRule
 apiVersion: kubeovn.io/v1
 metadata:
@@ -740,7 +731,6 @@ spec:
   externalPort: "22"
   vpc: vpc1
   v4Ip: 192.168.0.4
-
 ```
 
 OvnDnatRule 的配置与 IptablesDnatRule 类似
@@ -754,8 +744,7 @@ test-dnat-vip   192.168.0.4           00:00:00:D0:C0:B5                         
 NAME       V4IP        V6IP   MAC                 TYPE   READY
 eip-dnat   10.5.49.4          00:00:00:4D:CE:49   dnat   true
 
-# kubectl get odnat eip-dnat 
+# kubectl get odnat eip-dnat
 NAME       EIP        PROTOCOL   V4EIP       V4IP          INTERNALPORT   EXTERNALPORT   IPNAME          READY
 eip-dnat   eip-dnat   tcp        10.5.49.4   192.168.0.4   22             22             test-dnat-vip   true
-
 ```

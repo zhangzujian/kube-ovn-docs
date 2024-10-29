@@ -5,7 +5,7 @@
 - 支持基于 bfd 的高可用
 - 仅支持 hash 负载均衡
 
-``` mermaid
+```mermaid
 graph LR
 
 pod-->vpc-subnet-->vpc-->snat-->ecmp-->external-subnet-->gw-node1-ovnext0--> node1-external-switch
@@ -29,7 +29,7 @@ external-subnet-->gw-node3-ovnext0--> node3-external-switch
 
 自定义 vpc 使用该功能之前，需要先提供好网关节点，至少需要提供 2 个以上网关节点，注意当前实现 ovn-eip 的名字必须和网关节点名保持一致，目前没有做该资源的自动化维护。
 
-``` yaml
+```yaml
 # cat gw-node-eip.yaml
 ---
 kind: OvnEip
@@ -63,7 +63,7 @@ spec:
 
 ## 2. 自定义 vpc 启用 ecmp bfd L3 HA 公网功能
 
-``` bash
+```yaml
 # cat 01-vpc-ecmp-enable-external-bfd.yml
 kind: Vpc
 apiVersion: kubeovn.io/v1
@@ -74,8 +74,7 @@ spec:
   - vpc1
   enableExternal: true
   enableBfd: true # bfd 开关可以随意切换，开表示启用 bfd ecmp 路由
-  #enableBfd: false 
-
+  #enableBfd: false
 
 # cat 02-subnet.yml
 apiVersion: kubeovn.io/v1
@@ -109,7 +108,7 @@ spec:
 5. 当关闭 EnableExternal 时，vpc 内无法通外网。
 6. 当开启 EnableExternal 时，关闭 EnableBfd 时，会基于普通默认路由上外网，不具备高可用。
 
-``` bash
+```bash
 # 上述模板应用后 ovn 逻辑层应该可以看到如下资源
 # 查看 vpc
 # k get vpc
@@ -197,7 +196,7 @@ route_table         : ""
 
 ```
 
-``` bash
+```bash
 # 同时在网关节点都应该具备以下资源
 
 [root@pc-node-1 ~]# ip netns exec ovnext bash ip a
@@ -289,7 +288,7 @@ tcpdump: listening on ovnext0, link-type EN10MB (Ethernet), capture size 262144 
 
 在某些场景下，可能想直接使用（集中式）单个网关直接出公网，这个时候和默认 vpc enable_eip_snat 的使用模式是一致的
 
-``` bash
+```yaml
 # cat 01-vpc-ecmp-enable-external-bfd.yml
 kind: Vpc
 apiVersion: kubeovn.io/v1
@@ -303,7 +302,9 @@ spec:
   enableBfd: false
 
 ## 将 bfd 功能直接禁用即可
+```
 
+```bash
 # k ko nbctl lr-route-list vpc2
 IPv4 Routes
 Route Table <main>:

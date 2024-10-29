@@ -20,7 +20,7 @@ lspci | grep 1f47
 
 2. 查看每一个总线对应的设备最大可分配的 VF 数量：
 
-``` bash
+```bash
 cat /sys/bus/pci/devices/0000\:00\:0a.0/sriov_totalvfs
 256
 ```
@@ -68,7 +68,6 @@ data:
                 }}
         ]
     }
- 
 ```
 
 2. 安装并运行 SR-IOV Device Plugin

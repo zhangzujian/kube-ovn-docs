@@ -2,7 +2,7 @@
 
 打开 `kube-ovn.yaml`，在服务启动脚本的参数列表中设置 log 等级，比如：
 
-``` bash
+```bash
 vi kube-ovn.yaml
 # ...
         - name: kube-ovn-controller

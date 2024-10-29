@@ -1,6 +1,6 @@
 # Support OVN EIP,FIP and SNAT
 
-``` mermaid
+```mermaid
 
 graph LR
 
@@ -13,7 +13,7 @@ The pod access the public network based on the snat
 
 Pod uses a centralized gateway based on Fip, and the path is similar.
 
-``` mermaid
+```mermaid
 
 graph LR
 
@@ -46,11 +46,11 @@ If no vlan is in use (vlan 0 is used), the following startup parameters do not n
 # 1. kube-ovn-controller Startup parameters to be configured：
           - --external-gateway-vlanid=204
           - --external-gateway-switch=external204
-          
-# 2. kube-ovn-cni Startup parameters to be configured:
-          - --external-gateway-switch=external204 
 
-# The above configuration is consistent with the following public network configuration vlan id and resource name, 
+# 2. kube-ovn-cni Startup parameters to be configured:
+          - --external-gateway-switch=external204
+
+# The above configuration is consistent with the following public network configuration vlan id and resource name,
 # currently only support to specify one underlay public network as the default external public network.
 ```
 
@@ -65,7 +65,7 @@ The neutron ovn mode also has a certain static file configuration designation th
 
 ### 1.1 Create the underlay public network
 
-``` bash
+```yaml
 # provider-network， vlan， subnet
 # cat 01-provider-network.yaml
 
@@ -104,11 +104,10 @@ spec:
 
 ### 1.2 Default vpc enable eip_snat
 
-``` bash
-
+```yaml
 # Enable the default vpc and the above underlay public provider subnet interconnection
 
-cat 00-centralized-external-gw-no-ip.yaml
+# cat 00-centralized-external-gw-no-ip.yaml
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -116,11 +115,10 @@ metadata:
   namespace: kube-system
 data:
   enable-external-gw: "true"
-  external-gw-nodes: "pc-node-1,pc-node-2,pc-node-3" 
-  type: "centralized"  
+  external-gw-nodes: "pc-node-1,pc-node-2,pc-node-3"
+  type: "centralized"
   external-gw-nic: "vlan"
   external-gw-addr: "10.5.204.254/24"
-
 ```
 
 This feature currently supports the ability to create lrp type ovn eip resources without specifying the lrp ip and mac, which is already supported for automatic acquisition.
@@ -136,14 +134,14 @@ Clusters generally require multiple gateway nodes to achieve high availability. 
 kubectl label nodes pc-node-1 pc-node-2 pc-node-3 ovn.kubernetes.io/external-gw=true
 ```
 
-``` bash
+```yaml
 # cat 00-ns.yml
 
 apiVersion: v1
 kind: Namespace
 metadata:
   name: vpc1
-  
+
 # cat 01-vpc-ecmp-enable-external-bfd.yml
 
 kind: Vpc
@@ -177,7 +175,6 @@ spec:
   vpc: vpc1
   namespaces:
   - vpc1
-
 ```
 
 After the above template is applied, you should see the following resources exist
@@ -199,7 +196,7 @@ router 87ad06fd-71d5-4ff8-a1f0-54fa3bba1a7f (vpc1)
         type: "snat"
 ```
 
-``` bash
+```bash
 # kubectl ko nbctl lr-route-list vpc1
 
 IPv4 Routes
@@ -286,9 +283,7 @@ This function is designed and used in the same way as iptables-eip, ovn-eip curr
 - lrp: indicates the resource used to connect a vpc to the public network
 - lsp: In the ovn BFD-based ecmp static route scenario, an ovs internal port is provided on the gateway node as the next hop of the ecmp route
 
-``` bash
-
----
+```yaml
 kind: OvnEip
 apiVersion: kubeovn.io/v1
 metadata:
@@ -296,7 +291,7 @@ metadata:
 spec:
   externalSubnet: external204
   type: nat
-  
+
 # Dynamically allocate an eip resource that is reserved for fip dnat_and_snat scenarios
 ```
 
@@ -306,7 +301,7 @@ If you want to use an additional public network, you need to explicitly specify 
 
 ### 2.1 Create an fip for pod
 
-``` bash
+```bash
 # kubectl get po -o wide -n vpc1 vpc-1-busybox01
 NAME              READY   STATUS    RESTARTS   AGE     IP            NODE
 vpc-1-busybox01   1/1     Running   0          3d15h   192.168.0.2   pc-node-2
@@ -315,8 +310,9 @@ vpc-1-busybox01   1/1     Running   0          3d15h   192.168.0.2   pc-node-2
 NAME                   V4IP          V6IP   MAC                 NODE        SUBNET
 vpc-1-busybox01.vpc1   192.168.0.2          00:00:00:0A:DD:27   pc-node-2   vpc1-subnet1
 
----
+```
 
+```yaml
 kind: OvnEip
 apiVersion: kubeovn.io/v1
 metadata:
@@ -348,7 +344,7 @@ spec:
 
 ```
 
-``` bash
+```bash
 # kubectl get ofip
 NAME          VPC    V4EIP          V4IP          READY   IPTYPE   IPNAME
 eip-for-vip   vpc1   10.5.204.106   192.168.0.3   true    vip      test-fip-vip
@@ -372,7 +368,7 @@ rtt min/avg/max/mdev = 0.368/0.734/1.210/0.352 ms
 
 ```
 
-``` bash
+```bash
 
 # The key resources that this public ip can pass include the following ovn nb resources
 
@@ -395,8 +391,7 @@ router 87ad06fd-71d5-4ff8-a1f0-54fa3bba1a7f (vpc1)
 
 In order to facilitate the use of some vip scenarios, such as inside kubevirt VM, keepalived use vip, kube-vip use vip, etc. the vip need public network access.
 
-``` bash
-
+```yaml
 # First create vip, eip, then bind eip to vip
 # cat vip.yaml
 
@@ -440,10 +435,9 @@ spec:
   ipType: vip         # By default fip is for pod ip, here you need to specify the docking to vip resources
   vpc: vpc1
   v4Ip: 192.168.0.3
-
 ```
 
-``` bash
+```bash
 # kubectl get ofip
 NAME          VPC    V4EIP          V4IP          READY   IPTYPE   IPNAME
 eip-for-vip   vpc1   10.5.204.106   192.168.0.3   true    vip      test-fip-vip
@@ -574,7 +568,7 @@ If you want to use an additional public network, you need to explicitly specify 
 
 After the above resources are created, you can see the following resources that the snat public network feature depends on.
 
-``` bash
+```bash
 # kubectl ko nbctl show vpc1
 router 87ad06fd-71d5-4ff8-a1f0-54fa3bba1a7f (vpc1)
     port vpc1-vpc1-subnet1
@@ -594,7 +588,7 @@ router 87ad06fd-71d5-4ff8-a1f0-54fa3bba1a7f (vpc1)
         type: "snat"
 ```
 
-``` bash
+```yaml
 [root@pc-node-1 03-cust-vpc]# kubectl get po -A -o wide  | grep busy
 vpc1            vpc-1-busybox01                                 1/1     Running   0                3d15h   192.168.0.2   pc-node-2   <none>           <none>
 vpc1            vpc-1-busybox02                                 1/1     Running   0                17h     192.168.0.4   pc-node-1   <none>           <none>
@@ -660,7 +654,6 @@ rtt min/avg/max/mdev = 22.126/22.518/22.741/0.278 ms
 ### 4.1 ovn-dnat binds a DNAT to a pod
 
 ```yaml
-
 kind: OvnEip
 apiVersion: kubeovn.io/v1
 metadata:
@@ -694,7 +687,6 @@ spec:
   externalPort: "22"
   vpc: vpc1
   v4Ip: 192.168.0.3
-
 ```
 
 If you want to use an additional public network, you need to explicitly specify the public network to be extended through externalSubnet. In the above configuration, the extended public network is extra.
@@ -709,13 +701,11 @@ eip-dnat   10.5.49.4          00:00:00:4D:CE:49   dnat   true
 # kubectl get odnat
 NAME                   EIP                    PROTOCOL   V4EIP        V4IP           INTERNALPORT   EXTERNALPORT   IPNAME                                READY
 eip-dnat               eip-dnat               tcp        10.5.49.4    192.168.0.3    22             22             vpc-1-busybox01.vpc1                  true
-
 ```
 
 ### 4.2 ovn-dnat binds a DNAT to a VIP
 
 ```yaml
-
 kind: OvnDnatRule
 apiVersion: kubeovn.io/v1
 metadata:
@@ -727,7 +717,6 @@ spec:
   protocol: tcp
   internalPort: "22"
   externalPort: "22"
-
 
 ---
 # Alternatively, you can specify a vpc or Intranet ip address
@@ -745,7 +734,6 @@ spec:
   externalPort: "22"
   vpc: vpc1
   v4Ip: 192.168.0.4
-
 ```
 
 The configuration of OvnDnatRule is similar to that of IptablesDnatRule.
@@ -759,8 +747,7 @@ test-dnat-vip   192.168.0.4           00:00:00:D0:C0:B5                         
 NAME       V4IP        V6IP   MAC                 TYPE   READY
 eip-dnat   10.5.49.4          00:00:00:4D:CE:49   dnat   true
 
-# kubectl get odnat eip-dnat 
+# kubectl get odnat eip-dnat
 NAME       EIP        PROTOCOL   V4EIP       V4IP          INTERNALPORT   EXTERNALPORT   IPNAME          READY
 eip-dnat   eip-dnat   tcp        10.5.49.4   192.168.0.4   22             22             test-dnat-vip   true
-
 ```

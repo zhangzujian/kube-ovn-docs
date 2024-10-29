@@ -22,7 +22,7 @@ lspci | grep 1f47
 
 2. Check available VF number:
 
-``` bash
+```bash
 cat /sys/bus/pci/devices/0000\:00\:0a.0/sriov_totalvfs
 256
 ```
@@ -70,7 +70,6 @@ data:
                 }}
         ]
     }
- 
 ```
 
 2. Install and run the SR-IOV Device Plugin.

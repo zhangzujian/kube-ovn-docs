@@ -2,7 +2,7 @@
 
 Open `kube-ovn.yaml` and set the log level in the parameter list of the service startup script, such as:
 
-``` bash
+```bash
 
 vi kube-ovn.yaml
 # ...

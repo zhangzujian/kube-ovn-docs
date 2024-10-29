@@ -5,7 +5,7 @@ Custom vpc based on ovn snat after ecmp based static route hash to multiple gw n
 - Supports bfd-based high availability
 - Only supports hash load balancing
 
-``` mermaid
+```mermaid
 graph LR
 
 pod-->vpc-subnet-->vpc-->snat-->ecmp-->external-subnet-->gw-node1-ovnext0--> node1-external-switch
@@ -32,7 +32,7 @@ After these functions are verified, the vpc can be switched directly to the ecmp
 Before customizing vpc to use this feature, you need to provide some gateway nodes, at least 2.
 Note that the name of the current implementation of ovn-eip must be consistent with the gateway node name, no automated maintenance is currently done for this resource.
 
-``` yaml
+```yaml
 # cat gw-node-eip.yaml
 ---
 kind: OvnEip
@@ -66,7 +66,7 @@ Since this scenario is currently designed for vpc ecmp out of the public network
 
 ## 2. Custom vpc enable ecmp bfd L3 HA public network function
 
-``` bash
+```yaml
 # cat 01-vpc-ecmp-enable-external-bfd.yml
 kind: Vpc
 apiVersion: kubeovn.io/v1
@@ -77,8 +77,7 @@ spec:
   - vpc1
   enableExternal: true
   enableBfd: true # bfd switch can be switched at will
-  #enableBfd: false 
-
+  #enableBfd: false
 
 # cat 02-subnet.yml
 apiVersion: kubeovn.io/v1
@@ -112,7 +111,7 @@ spec:
 5. When EnableExternal is turned off in vpc, the external network cannot be passed inside vpc.
 6. When EnableExternal is enabled on vpc, when EnableBfd is turned off, it will be based on the normal default route to the external network and will not have high availability.
 
-``` bash
+```bash
 # After the above template is applied the ovn logic layer should see the following resources
 # k get vpc
 NAME          ENABLEEXTERNAL   ENABLEBFD   STANDBY   SUBNETS                                NAMESPACES
@@ -198,7 +197,7 @@ route_table         : ""
 
 ```
 
-``` bash
+```bash
 # Also, the following resources should be available at all gateway nodes
 
 [root@pc-node-1 ~]# ip netns exec ovnext bash ip a
@@ -287,7 +286,7 @@ tcpdump: listening on ovnext0, link-type EN10MB (Ethernet), capture size 262144 
 
 In some scenarios, you may want to use a (centralized) single gateway directly out of the public network, which is the same as the default vpc enable_eip_snat usage pattern
 
-``` bash
+```yaml
 # cat 01-vpc-ecmp-enable-external-bfd.yml
 kind: Vpc
 apiVersion: kubeovn.io/v1
@@ -301,7 +300,9 @@ spec:
   enableBfd: false
 
 ## set it false add apply
+```
 
+```bash
 # k ko nbctl lr-route-list vpc2
 IPv4 Routes
 Route Table <main>:
